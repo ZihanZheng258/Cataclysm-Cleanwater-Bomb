@@ -1,0 +1,218 @@
+[
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_red_bean_paste",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_VEGGI",
+    "skill_used": "cooking",
+    "difficulty": 2,
+    "time": "30 m",
+    "charges": 4,
+    "autolearn": true,
+    "batch_time_factors": [ 83, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 15, "LIST" ] ] ],
+    "components": [
+      [ [ "pea", 20 ], [ "dry_lentils", 2 ], [ "raw_beans", 2 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "water_clean", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_yokan",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_VEGGI",
+    "skill_used": "cooking",
+    "difficulty": 4,
+    "time": "40 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 5 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "proficiencies": [ { "proficiency": "prof_food_prep" } ],
+    "tools": [ [ [ "surface_heat", 20, "LIST" ] ] ],
+    "components": [
+      [ [ "cd_delight_red_bean_paste", 1 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "gelatin_fresh", 1 ], [ "gelatin_powder", 25 ], [ "chem_agar", 25 ] ],
+      [ [ "water_clean", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_shiruko",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_DRINKS",
+    "skill_used": "cooking",
+    "difficulty": 1,
+    "time": "10 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 83, 4 ],
+    "qualities": [ { "id": "COOK", "level": 1 } ],
+    "tools": [ [ [ "surface_heat", 5, "LIST" ] ] ],
+    "components": [
+      [ [ "cd_delight_red_bean_paste", 1 ] ],
+      [ [ "water_clean", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_dorayaki",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_SNACK",
+    "skill_used": "cooking",
+    "difficulty": 3,
+    "time": "15 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 10, "LIST" ] ] ],
+    "components": [
+      [ [ "flour_any", 8, "LIST" ] ],
+      [ [ "eggs_any_shape", 1, "LIST" ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "any_butter_or_oil", 2, "LIST" ] ],
+      [ [ "water_clean", 1 ] ],
+      [ [ "cd_delight_red_bean_paste", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_taiyaki",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_SNACK",
+    "skill_used": "cooking",
+    "difficulty": 3,
+    "time": "15 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 12, "LIST" ] ], [ [ "waffleiron", -1 ] ] ],
+    "components": [
+      [ [ "flour_any", 10, "LIST" ] ],
+      [ [ "eggs_any_shape", 1, "LIST" ] ],
+      [ [ "milk_standard_raw", 1, "LIST" ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "any_butter_or_oil", 2, "LIST" ] ],
+      [ [ "water_clean", 1 ] ],
+      [ [ "cd_delight_red_bean_paste", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_dango",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_SNACK",
+    "skill_used": "cooking",
+    "difficulty": 2,
+    "time": "15 m",
+    "charges": 3,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 1 } ],
+    "tools": [ [ [ "surface_heat", 8, "LIST" ] ] ],
+    "components": [
+      [ [ "flour_wheat_free", 10 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "water_clean", 1 ] ],
+      [ [ "cd_delight_red_bean_paste", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_anpan",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_BREAD",
+    "skill_used": "cooking",
+    "difficulty": 3,
+    "time": "30 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 }, { "id": "OVEN", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 20, "LIST" ] ] ],
+    "components": [
+      [ [ "flour_any", 12, "LIST" ] ],
+      [ [ "yeast", 1 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "milk_standard_raw", 1, "LIST" ], [ "water_clean", 1 ] ],
+      [ [ "any_butter_or_oil", 2, "LIST" ] ],
+      [ [ "cd_delight_red_bean_paste", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_wandouhuang",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_VEGGI",
+    "skill_used": "cooking",
+    "difficulty": 2,
+    "time": "25 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 15, "LIST" ] ] ],
+    "components": [
+      [ [ "pea", 20 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "water_clean", 1 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_xueyihongsha",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_SNACK",
+    "skill_used": "cooking",
+    "difficulty": 4,
+    "time": "20 m",
+    "charges": 3,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 3 } ],
+    "proficiencies": [ { "proficiency": "prof_food_prep" }, { "proficiency": "prof_frying" } ],
+    "tools": [ [ [ "surface_heat", 15, "LIST" ] ], [ [ "frying_oil", 1, "LIST" ] ] ],
+    "components": [
+      [ [ "cd_delight_red_bean_paste", 1 ] ],
+      [ [ "eggs_any_shape", 2, "LIST" ] ],
+      [ [ "starch", 2 ] ],
+      [ [ "fry_oil", 2, "LIST" ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ]
+    ]
+  },
+  {
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "result": "cd_delight_doushalianggao",
+    "category": "CC_FOOD",
+    "subcategory": "CSC_FOOD_SNACK",
+    "skill_used": "cooking",
+    "difficulty": 2,
+    "time": "20 m",
+    "charges": 2,
+    "autolearn": true,
+    "batch_time_factors": [ 50, 4 ],
+    "qualities": [ { "id": "COOK", "level": 2 } ],
+    "tools": [ [ [ "surface_heat", 12, "LIST" ] ] ],
+    "components": [
+      [ [ "flour_wheat_free", 8 ] ],
+      [ [ "cd_delight_red_bean_paste", 1 ] ],
+      [ [ "sugar_standard_half", 1, "LIST" ] ],
+      [ [ "water_clean", 1 ] ]
+    ]
+  }
+]
