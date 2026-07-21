@@ -888,6 +888,8 @@ void npc::assess_danger()
     int friendly_count = 1; // count yourself as a friendly
     int def_radius = desired_follow_radius();
     bool npc_ranged = get_wielded_item() && get_wielded_item()->is_gun();
+    // Individual enemy threats, combined with diminishing returns at the end
+    std::vector<float> enemy_threats;
 
     if( !confident_range_cache ) {
         invalidate_range_cache();
@@ -1044,6 +1046,7 @@ void npc::assess_danger()
 
         if( is_enemy() || !critter.friendly ) {
             mem_combat.assess_enemy += critter_threat;
+            enemy_threats.push_back( critter_threat );
             if( critter_threat > ( 8.0f + personality.bravery + rng( 0, 5 ) ) ) {
                 warn_about( "monster", 10_minutes, critter.type->nname(), dist, critter.pos_bub() );
             }
@@ -1179,9 +1182,11 @@ void npc::assess_danger()
     for( const weak_ptr_fast<Creature> &guy : ai_cache.hostile_guys ) {
         Character *foe = dynamic_cast<Character *>( guy.lock().get() );
         if( foe && foe->is_npc() ) {
-            mem_combat.assess_enemy += handle_hostile( *foe, evaluate_character( *foe, npc_ranged ),
-                                       translate_marker( "bandit" ),
-                                       "kill_npc" );
+            const float foe_threat = handle_hostile( *foe, evaluate_character( *foe, npc_ranged ),
+                                    translate_marker( "bandit" ),
+                                    "kill_npc" );
+            mem_combat.assess_enemy += foe_threat;
+            enemy_threats.push_back( foe_threat );
         }
     }
     add_msg_debug( debugmode::DF_NPC_COMBATAI,
@@ -1217,9 +1222,11 @@ void npc::assess_danger()
             add_msg_debug( debugmode::DF_NPC_COMBATAI,
                            "<color_light_gray>%s identified player as an</color> <color_red>enemy</color> <color_light_gray>of threat level %1.2f</color>",
                            name, player_diff );
-            mem_combat.assess_enemy += handle_hostile( player_character, player_diff,
-                                       translate_marker( "maniac" ),
-                                       "kill_player" );
+            const float player_threat = handle_hostile( player_character, player_diff,
+                                        translate_marker( "maniac" ),
+                                        "kill_player" );
+            mem_combat.assess_enemy += player_threat;
+            enemy_threats.push_back( player_threat );
         } else if( is_friendly( player_character ) ) {
             add_msg_debug( debugmode::DF_NPC_COMBATAI,
                            "<color_light_gray>%s identified player as a </color><color_green>friend</color><color_light_gray> of threat level %1.2f (ily babe)",
@@ -1255,6 +1262,28 @@ void npc::assess_danger()
                    "<color_light_blue>After checking player</color><color_light_gray>, %s assesses enemy level as </color><color_yellow>%1.2f</color><color_light_gray>, ally level at </color><color_light_green>%1.2f</color>",
                    name, mem_combat.assess_enemy, mem_combat.assess_ally );
 
+
+    // Combine enemy threats with diminishing returns: sorted strongest to weakest,
+    // each threat adds less the smaller it is relative to the running total.
+    // Threats below 5% of the maximum are negligible and ignored entirely.
+    if( !enemy_threats.empty() ) {
+        std::sort( enemy_threats.begin(), enemy_threats.end(), []( float a, float b ) {
+            return a > b;
+        } );
+        const float max_threat = enemy_threats.front();
+        float combined = max_threat;
+        for( size_t i = 1; i < enemy_threats.size(); i++ ) {
+            const float t = enemy_threats[i];
+            if( t < max_threat * 0.05f ) {
+                continue;
+            }
+            combined += t * ( 1.0f + t / combined ) / 2.0f;
+        }
+        add_msg_debug( debugmode::DF_NPC_COMBATAI,
+                       "%s combined %zu enemy threats into %1.2f (raw sum %1.2f, max %1.2f).",
+                       name, enemy_threats.size(), combined, mem_combat.assess_enemy, max_threat );
+        mem_combat.assess_enemy = combined;
+    }
 
     // gotta rename cowardice modifier now.
     // This bit scales the assessments of enemies and allies so that the NPC weights their own skills a little higher.
