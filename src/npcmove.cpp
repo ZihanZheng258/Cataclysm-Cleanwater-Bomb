@@ -1267,6 +1267,7 @@ void npc::assess_danger()
 
     // Combine enemy threats with diminishing returns: sorted strongest to weakest,
     // each threat adds less the smaller it is relative to the running total.
+    // The coefficient falls from 1.0 (equal strength) toward 0.05 (negligible).
     // Threats below 5% of the maximum are negligible and ignored entirely.
     if( !enemy_threats.empty() ) {
         std::sort( enemy_threats.begin(), enemy_threats.end(), []( float a, float b ) {
@@ -1279,7 +1280,7 @@ void npc::assess_danger()
             if( t < max_threat * 0.05f ) {
                 continue;
             }
-            combined += t * ( 1.0f + t / combined ) / 2.0f;
+            combined += t * ( 0.05f + 0.95f * t / combined );
         }
         add_msg_debug( debugmode::DF_NPC_COMBATAI,
                        "%s combined %zu enemy threats into %1.2f (raw sum %1.2f, max %1.2f).",
