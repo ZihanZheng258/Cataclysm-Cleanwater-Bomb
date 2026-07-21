@@ -1199,6 +1199,8 @@ void npc::assess_danger()
         float guy_threat = std::max( evaluate_character( dynamic_cast<const Character &>( *guy.lock() ),
                                      npc_ranged, false ), NPC_DANGER_VERY_LOW );
         mem_combat.assess_ally += guy_threat * 0.5f;
+        // Count allied NPCs against being outnumbered, same as friendly monsters
+        friendly_count += 1;
         add_msg_debug( debugmode::DF_NPC_COMBATAI,
                        "<color_light_gray>%s assessed friendly %s at threat level </color><color_light_blue>%1.2f.</color>",
                        name, guy.lock()->disp_name(), guy_threat );
@@ -1297,7 +1299,10 @@ void npc::assess_danger()
     // how much pain they're currently experiencing. This means a very brave NPC might ignore
     // large crowds of minor creatures, until they start getting hurt.
     if( hostile_count > friendly_count ) {
-        mem_combat.assess_enemy *= std::max( hostile_count / static_cast<float>( friendly_count ), 1.0f );
+        // Cap the crowd multiplier: being surrounded is scary, but numbers are
+        // already accounted for in the combined threat and shouldn't scale linearly
+        mem_combat.assess_enemy *= std::min(
+                                       std::max( hostile_count / static_cast<float>( friendly_count ), 1.0f ), 3.0f );
         add_msg_debug( debugmode::DF_NPC_COMBATAI,
                        "Crowd adjustment: <color_light_gray>%s set danger level to </color>%1.2f<color_light_gray> after counting </color><color_yellow>%i major hostiles</color><color_light_gray> vs </color><color_light_green>%i friendlies.</color>",
                        name, mem_combat.assess_enemy, hostile_count, friendly_count );
