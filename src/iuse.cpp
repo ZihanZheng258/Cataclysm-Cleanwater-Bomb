@@ -189,6 +189,7 @@ static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_earphones( "earphones" );
 static const efftype_id effect_flushot( "flushot" );
 static const efftype_id effect_foodpoison( "foodpoison" );
+static const efftype_id effect_fish_chum( "effect_fish_chum" );
 static const efftype_id effect_formication( "formication" );
 static const efftype_id effect_fungus( "fungus" );
 static const efftype_id effect_glowing( "glowing" );
@@ -271,11 +272,13 @@ static const itype_id itype_cig_lit( "cig_lit" );
 static const itype_id itype_cigar( "cigar" );
 static const itype_id itype_cigar_lit( "cigar_lit" );
 static const itype_id itype_cow_bell( "cow_bell" );
+static const itype_id itype_chum_marker( "chum_marker" );
 static const itype_id itype_detergent( "detergent" );
 static const itype_id itype_ecig( "ecig" );
 static const itype_id itype_efile_map( "efile_map" );
 static const itype_id itype_efile_photos( "efile_photos" );
 static const itype_id itype_fire( "fire" );
+static const itype_id itype_fish_bait( "fish_bait" );
 static const itype_id itype_geiger_on( "geiger_on" );
 static const itype_id itype_hammer( "hammer" );
 static const itype_id itype_handrolled_cig( "handrolled_cig" );
@@ -1773,6 +1776,52 @@ std::optional<int> iuse::fishing_rod( Character *p, item *it, const tripoint_bub
         return std::nullopt;
     }
 
+    uilist main_menu;
+    main_menu.text = _( "What do you want to do?" );
+    main_menu.addentry( 0, true, 'f', _( "Fish" ) );
+    main_menu.addentry( 1, true, 'c', _( "Chum the water" ) );
+    main_menu.query();
+
+    if( main_menu.ret == 1 ) {
+        // Chum the water: consume bait to attract fish
+        const int bait_available = p->charges_of( itype_fish_bait );
+        if( bait_available == 0 ) {
+            p->add_msg_if_player( m_info, _( "You have no bait!" ) );
+            return std::nullopt;
+        }
+        int chum_amount = bait_available;
+        if( !query_int( chum_amount, false,
+                        string_format( _( "How much bait? (1-%d)" ), bait_available ) ) ) {
+            return std::nullopt;
+        }
+        if( chum_amount < 1 || chum_amount > bait_available ) {
+            return std::nullopt;
+        }
+        // Exponential chum formula
+        const float units = static_cast<float>( chum_amount ) / it->type->fish_chum_cost;
+        const float decay = it->type->fish_chum_decay;
+        const float chum_mult = 1.0f + ( it->type->fish_chum_max_mult - 1.0f ) *
+                                ( 1.0f - std::exp( -decay * units ) );
+        const float chum_hours = to_hours<float>( it->type->fish_chum_max_duration ) *
+                                 ( 1.0f - std::exp( -decay * units ) );
+        // Consume bait from all pockets (including rod magazines)
+        p->use_charges( itype_fish_bait, chum_amount );
+        p->add_msg_if_player( m_good,
+                              _( "You scatter bait across the water.  Fish should gather soon." ) );
+        p->add_effect( effect_fish_chum, time_duration::from_hours( chum_hours ) );
+        // Place a chum marker with stored multiplier and duration
+        item chum_marker( itype_chum_marker, calendar::turn );
+        chum_marker.set_var( "chum_mult", chum_mult );
+        chum_marker.set_var( "chum_dur_hours", chum_hours );
+        here.add_item_or_charges( *found, chum_marker );
+        return 0;
+    }
+
+    if( it->ammo_remaining() == 0 ) {
+        p->add_msg_if_player( m_info, _( "You need bait to fish!" ) );
+        return std::nullopt;
+    }
+
     if( !it->activation_success() ) {
         p->add_msg_if_player( m_bad,
                               _( "You try to cast your line, but something with your %s prevents it from reeling out." ),
@@ -1780,9 +1829,34 @@ std::optional<int> iuse::fishing_rod( Character *p, item *it, const tripoint_bub
         return std::nullopt;
     }
 
+    uilist dmenu;
+    dmenu.text = _( "How long do you want to fish?" );
+    dmenu.addentry( 0, true, '1', _( "1 hour" ) );
+    dmenu.addentry( 1, true, '3', _( "3 hours" ) );
+    dmenu.addentry( 2, true, '5', _( "5 hours" ) );
+    dmenu.addentry( 3, true, 'b', _( "Until bait runs out" ) );
+    dmenu.query();
+    time_duration chosen_duration;
+    switch( dmenu.ret ) {
+        case 0:
+            chosen_duration = 1_hours;
+            break;
+        case 1:
+            chosen_duration = 3_hours;
+            break;
+        case 2:
+            chosen_duration = 5_hours;
+            break;
+        case 3:
+            chosen_duration = 999_hours;
+            break;
+        default:
+            return std::nullopt;
+    }
+
     p->add_msg_if_player( _( "You cast your line and wait to hook something…" ) );
     p->assign_activity( fish_activity_actor( item_location( *p, it ),
-                        g->get_fishable_locations_abs( MAX_VIEW_DISTANCE, *found ), 5_hours ) );
+                        g->get_fishable_locations_abs( MAX_VIEW_DISTANCE, *found ), chosen_duration ) );
     return 0;
 }
 
@@ -1828,6 +1902,7 @@ std::optional<int> iuse::fish_trap( Character *p, item *it, const tripoint_bub_m
         return std::nullopt;
     }
 
+    it->set_var( "survival_skill", p->get_skill_level( skill_survival ) );
     it->active = true;
     it->set_age( 0_turns );
     here.add_item_or_charges( pnt, *it );
@@ -1847,17 +1922,19 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
         it->active = false;
         return 0;
     }
-    if( it->age() > 3_hours ) {
+    if( it->age() > it->type->fish_trap_processing_time ) {
         it->active = false;
 
         if( !here.has_flag( ter_furn_flag::TFLAG_FISHABLE, pos ) ) {
             return 0;
         }
 
-        avatar &player = get_avatar();
+        float surv = it->get_var( "survival_skill", 0.0 );
+        if( is_dawn( calendar::turn ) || is_dusk( calendar::turn ) ) {
+            surv *= 2.0;
+        }
 
         int success = -50;
-        const float surv = player.get_skill_level( skill_survival );
         const int attempts = rng( it->ammo_remaining( ),
                                   it->ammo_remaining( ) * it->ammo_remaining( ) );
         for( int i = 0; i < attempts; i++ ) {
@@ -1865,7 +1942,18 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             success += rng( round( surv ), round( surv * surv ) );
         }
 
-        int bait_consumed = rng( 0, it->ammo_remaining( ) + 1 );
+        // Check for active chum on this tile
+        for( const item &ground_item : here.i_at( pos ) ) {
+            if( ground_item.typeId() == itype_chum_marker ) {
+                const double chum_hours = ground_item.get_var( "chum_dur_hours", 3.0 );
+                if( ground_item.age() < time_duration::from_hours( chum_hours ) ) {
+                    success *= ground_item.get_var( "chum_mult", 2.0 );
+                    break;
+                }
+            }
+        }
+
+        int bait_consumed = rng( 1, it->ammo_remaining( ) + 1 );
         if( bait_consumed > it->ammo_remaining( ) ) {
             bait_consumed = it->ammo_remaining( );
         }
@@ -1882,9 +1970,17 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
             fishes = rng( 3, 5 );
         }
 
+        // Cap fish count by trap capacity (JSON-defined or derived from volume)
+        const int max_fish_by_volume = it->type->fish_trap_capacity > 0
+                                           ? it->type->fish_trap_capacity
+                                           : std::max( 1, it->type->volume / 1_liter );
+        if( fishes > max_fish_by_volume ) {
+            fishes = max_fish_by_volume;
+        }
+
         if( fishes == 0 ) {
-            it->ammo_consume( it->ammo_remaining( ), pos, nullptr );
-            player.practice( skill_survival, rng( 5, 15 ) );
+            it->ammo_consume( bait_consumed, pos, nullptr );
+            get_avatar().practice( skill_survival, rng( 5, 15 ) );
 
             return 0;
         }
@@ -1894,9 +1990,20 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
                     MAX_VIEW_DISTANCE, pos );
         std::vector<monster *> fishables = g->get_fishable_monsters( fishable_locations );
         for( int i = 0; i < fishes; i++ ) {
-            player.practice( skill_survival, rng( 3, 10 ) );
+            get_avatar().practice( skill_survival, rng( 3, 10 ) );
             if( !fishables.empty() ) {
                 monster *chosen_fish = random_entry( fishables );
+                // big fish may escape the trap
+                if( chosen_fish->type != nullptr ) {
+                    const int fish_weight = chosen_fish->type->weight / 1_gram;
+                    if( fish_weight > 2000 ) {
+                        const int surv_skill = surv;
+                        const int difficulty = std::min( 20, fish_weight / 500 );
+                        if( !x_in_y( surv_skill, difficulty ) ) {
+                            continue;
+                        }
+                    }
+                }
                 // reduce the abstract fish_population marker of that fish
                 chosen_fish->fish_population -= 1;
                 if( chosen_fish->fish_population <= 0 ) {
@@ -1914,6 +2021,15 @@ std::optional<int> iuse::fish_trap_tick( Character *p, item *it, const tripoint_
                     const std::vector<mtype_id> fish_group = MonsterGroupManager::GetMonstersFromGroup(
                                 GROUP_FISH, true );
                     const mtype_id &fish_mon = random_entry_ref( fish_group );
+                    // big fish may escape the trap
+                    const int fish_weight = fish_mon->weight / 1_gram;
+                    if( fish_weight > 2000 ) {
+                        const int surv_skill = surv;
+                        const int difficulty = std::min( 20, fish_weight / 500 );
+                        if( !x_in_y( surv_skill, difficulty ) ) {
+                            continue;
+                        }
+                    }
                     //Yes, we can put fishes in the trap like knives in the boot,
                     //and then get fishes via activation of the item,
                     //but it's not as comfortable as if you just put fishes in the same tile with the trap.

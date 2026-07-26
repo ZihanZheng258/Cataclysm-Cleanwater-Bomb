@@ -296,6 +296,7 @@ static const efftype_id effect_controlled( "controlled" );
 static const efftype_id effect_currently_busy( "currently_busy" );
 static const efftype_id effect_docile( "docile" );
 static const efftype_id effect_downed( "downed" );
+static const efftype_id effect_fish_chum( "effect_fish_chum" );
 static const efftype_id effect_gliding( "gliding" );
 static const efftype_id effect_infected( "infected" );
 static const efftype_id effect_magic_channeling( "magic_channeling" );
@@ -341,6 +342,7 @@ static const item_group_id Item_spawn_data_forage_autumn( "forage_autumn" );
 static const item_group_id Item_spawn_data_forage_spring( "forage_spring" );
 static const item_group_id Item_spawn_data_forage_summer( "forage_summer" );
 static const item_group_id Item_spawn_data_forage_winter( "forage_winter" );
+static const item_group_id fishing_junk_group( "fishing_junk" );
 
 static const itype_id itype_2x4( "2x4" );
 static const itype_id itype_animal( "animal" );
@@ -348,6 +350,7 @@ static const itype_id itype_attachable_ear_muffs( "attachable_ear_muffs" );
 static const itype_id itype_attached_ear_plugs_off( "attached_ear_plugs_off" );
 static const itype_id itype_battery( "battery" );
 static const itype_id itype_cash_card( "cash_card" );
+static const itype_id itype_chum_marker( "chum_marker" );
 static const itype_id itype_detergent( "detergent" );
 static const itype_id itype_disassembly( "disassembly" );
 static const itype_id itype_efile_junk( "efile_junk" );
@@ -4758,6 +4761,16 @@ std::unique_ptr<activity_actor> atm_activity_actor::deserialize( JsonValue &jsin
 static void rod_fish( Character &who, const std::vector<monster *> &fishables )
 {
     map &here = get_map();
+
+    // Low chance of catching junk instead of a fish, decreased by survival skill
+    const int survival = who.get_skill_level( skill_survival );
+    if( x_in_y( std::max( 1, 10 - survival ), 200 ) ) {
+        item junk_item = item_group::item_from( fishing_junk_group );
+        here.add_item_or_charges( who.pos_bub(), junk_item );
+        who.add_msg_if_player( m_bad, _( "You pulled up a %s!" ), junk_item.tname() );
+        return;
+    }
+
     constexpr auto caught_corpse = []( Character & who, map & here, const mtype & corpse_type ) {
         item corpse = item::make_corpse( corpse_type.id,
                                          calendar::turn + rng( 0_turns,
@@ -4774,9 +4787,31 @@ static void rod_fish( Character &who, const std::vector<monster *> &fishables )
         const std::vector<mtype_id> fish_group = MonsterGroupManager::GetMonstersFromGroup(
                     GROUP_FISH, true );
         const mtype_id fish_mon = random_entry_ref( fish_group );
+        // big fish may get away
+        const int fish_weight = fish_mon->weight / 1_gram;
+        if( fish_weight > 2000 ) {
+            const int survival = who.get_skill_level( skill_survival );
+            const int difficulty = std::min( 20, fish_weight / 500 );
+            if( !x_in_y( survival, difficulty ) ) {
+                who.add_msg_if_player( m_bad, _( "Something big got away!" ) );
+                return;
+            }
+        }
         caught_corpse( who, here, fish_mon.obj() );
     } else {
         monster *chosen_fish = random_entry( fishables );
+        // big fish may get away
+        if( chosen_fish->type != nullptr ) {
+            const int fish_weight = chosen_fish->type->weight / 1_gram;
+            if( fish_weight > 2000 ) {
+                const int survival = who.get_skill_level( skill_survival );
+                const int difficulty = std::min( 20, fish_weight / 500 );
+                if( !x_in_y( survival, difficulty ) ) {
+                    who.add_msg_if_player( m_bad, _( "The %s got away!" ), chosen_fish->type->nname() );
+                    return;
+                }
+            }
+        }
         chosen_fish->fish_population -= 1;
         if( chosen_fish->fish_population <= 0 ) {
             Character *who_ptr = &who;
@@ -4796,10 +4831,20 @@ void fish_activity_actor::start( player_activity &act, Character & )
 
 void fish_activity_actor::do_turn( player_activity &, Character &who )
 {
+    map &here = get_map();
+
+    if( fishing_rod->ammo_remaining() == 0 ) {
+        who.add_msg_if_player( m_info, _( "You're out of bait!" ) );
+        who.cancel_activity();
+        return;
+    }
 
     float fish_chance = 1.0f;
     float survival_skill = who.get_skill_level( skill_survival );
     switch( fishing_rod->get_quality( qual_FISHING_ROD ) ) {
+        case 0:
+            survival_skill += dice( 1, 3 );
+            break;
         case 1:
             survival_skill += dice( 1, 6 );
             break;
@@ -4811,6 +4856,9 @@ void fish_activity_actor::do_turn( player_activity &, Character &who )
         default:
             debugmsg( "ERROR: Invalid FISHING_ROD tool quality on %s", item::nname( fishing_rod->typeId() ) );
             break;
+    }
+    if( is_dawn( calendar::turn ) || is_dusk( calendar::turn ) ) {
+        survival_skill *= 1.5;
     }
     std::vector<monster *> fishables = g->get_fishable_monsters( fishing_zone );
     // Fish are always there, even if it doesn't seem like they are visible!
@@ -4825,9 +4873,26 @@ void fish_activity_actor::do_turn( player_activity &, Character &who )
     }
     // no matter the population of fish, your skill and tool limits the ease of catching.
     fish_chance = std::min( survival_skill * 10, fish_chance );
-    if( x_in_y( fish_chance, 600000 ) ) {
+    // Chumming the water greatly increases bite rate
+    for( const tripoint_bub_ms &pnt : here.points_in_radius( who.pos_bub(), 1 ) ) {
+        if( here.has_flag( ter_furn_flag::TFLAG_FISHABLE, pnt ) ) {
+            for( const item &ground_item : here.i_at( pnt ) ) {
+                if( ground_item.typeId() == itype_chum_marker ) {
+                    const double chum_hours = ground_item.get_var( "chum_dur_hours", 3.0 );
+                    if( ground_item.age() < time_duration::from_hours( chum_hours ) ) {
+                        fish_chance *= ground_item.get_var( "chum_mult", 2.0 );
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if( x_in_y( fish_chance, fishing_rod->type->fish_bite_chance ) ) {
         who.add_msg_if_player( m_good, _( "You feel a tug on your line!" ) );
         rod_fish( who, fishables );
+        if( fishing_rod->ammo_remaining() > 0 ) {
+            fishing_rod->ammo_consume( 1, who.pos_bub(), &who );
+        }
     }
     if( calendar::once_every( 60_minutes ) ) {
         who.practice( skill_survival, rng( 1, 3 ) );

@@ -4591,6 +4591,14 @@ void itype::load( const JsonObject &jo, std::string_view src )
     optional( jo, was_loaded, "throw_stamina_multiplier", throw_stamina_multiplier, 1.0f );
     optional( jo, was_loaded, "throw_dispersion_multiplier", throw_dispersion_multiplier, 1.0f );
     optional( jo, was_loaded, "throw_speed_multiplier", throw_speed_multiplier, 1.0f );
+    optional( jo, was_loaded, "throw_weight_multiplier", throw_weight_multiplier, 1.0f );
+    optional( jo, was_loaded, "fish_trap_capacity", fish_trap_capacity, -1 );
+    optional( jo, was_loaded, "fish_bite_chance", fish_bite_chance, 600000 );
+    optional( jo, was_loaded, "fish_trap_processing_time", fish_trap_processing_time );
+    optional( jo, was_loaded, "fish_chum_cost", fish_chum_cost, 5 );
+    optional( jo, was_loaded, "fish_chum_max_mult", fish_chum_max_mult, 3.0f );
+    optional( jo, was_loaded, "fish_chum_max_duration", fish_chum_max_duration );
+    optional( jo, was_loaded, "fish_chum_decay", fish_chum_decay, 1.0f );
     optional( jo, was_loaded, "explosion", explosion );
     using_legacy_to_hit = false; //required for inherited but undefined "to_hit" field
     optional( jo, was_loaded, "to_hit", m_to_hit, melee_accuracy_reader{ *this }, -2 );

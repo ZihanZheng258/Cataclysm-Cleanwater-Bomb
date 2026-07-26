@@ -5902,5 +5902,14 @@
     "desc": [ "" ],
     "int_decay_step": 1,
     "int_decay_tick": 120
+  },
+  {
+    "type": "effect_type",
+    "id": "effect_fish_chum",
+    "name": [ "Chummed" ],
+    "desc": [ "You've scattered bait in the water.  Fish are gathering." ],
+    "rating": "good",
+    "max_duration": "12 h",
+    "max_intensity": 1
   }
 ]

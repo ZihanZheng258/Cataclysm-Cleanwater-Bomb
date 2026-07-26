@@ -1467,6 +1467,27 @@ struct itype {
         float throw_dispersion_multiplier = 1.0f;
         float throw_speed_multiplier = 1.0f;
 
+        /** Maximum number of fish a fish trap can hold (-1 = derive from volume) */
+        int fish_trap_capacity = -1;
+
+        /** Base bite chance denominator for fishing rods (lower = easier) */
+        int fish_bite_chance = 600000;
+
+        /** Time required for a fish trap to complete processing */
+        time_duration fish_trap_processing_time = 3_hours;
+
+        /** Bait cost for chumming the water (base unit) */
+        int fish_chum_cost = 5;
+
+        /** Maximum chum multiplier above 1.0 (soft cap) */
+        float fish_chum_max_mult = 3.0f;
+
+        /** Maximum duration of chum effect */
+        time_duration fish_chum_max_duration = 12_hours;
+
+        /** Chum decay rate (higher = faster approach to cap) */
+        float fish_chum_decay = 1.0f;
+
         /** What recipes can make this item */
         std::vector<recipe_id> recipes;
 

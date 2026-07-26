@@ -101,5 +101,18 @@
       { "item": "splinter", "count": [ 1, 2 ] },
       { "item": "nail", "charges": [ 0, 2 ] }
     ]
+  },
+  {
+    "type": "item_group",
+    "id": "fishing_junk",
+    "subtype": "distribution",
+    "entries": [
+      { "item": "stick", "prob": 20 },
+      { "item": "boots", "prob": 15 },
+      { "item": "can_drink", "prob": 20 },
+      { "item": "bottle_plastic", "prob": 20 },
+      { "item": "string_6", "prob": 15 },
+      { "item": "rag", "prob": 10 }
+    ]
   }
 ]
